@@ -1,1 +1,625 @@
-0
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>2026 World Cup Tracker</title>
+<style>
+  :root{
+    --ink:#0B0E14;--ink-2:#10141E;--surface:#161C2A;--surface-2:#1D2433;--line:#283042;
+    --text:#E8EDF4;--muted:#8A94A6;--faint:#5B6577;
+    --go:#2BD576;--go-bg:rgba(43,213,118,.12);--bubble:#F6B83C;--bubble-bg:rgba(246,184,60,.12);
+    --out:#FF5A6E;--out-bg:rgba(255,90,110,.10);--accent:#B14BF4;--accent-2:#37E0E8;
+    --shadow:0 12px 40px rgba(0,0,0,.45);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:"Helvetica Neue",Inter,Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{
+    background:radial-gradient(1200px 500px at 80% -10%,rgba(177,75,244,.10),transparent 60%),
+      radial-gradient(900px 400px at 0% 0%,rgba(55,224,232,.07),transparent 55%),var(--ink);
+    min-height:100vh;padding:clamp(14px,3vw,34px);
+  }
+  .wrap{max-width:1240px;margin:0 auto}
+  header.top{margin-bottom:20px}
+  .eyebrow{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent-2);font-weight:700;margin:0 0 6px}
+  h1{margin:0;font-size:clamp(23px,4.4vw,40px);line-height:1.02;font-weight:800;letter-spacing:-.01em}
+  h1 .arrow{background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stamp{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .stamp b{color:var(--muted);font-weight:600}
+  .ro{display:inline-flex;align-items:center;gap:6px;background:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .ro:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-2)}
+  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:22px;width:fit-content}
+  .tab{background:transparent;border:none;border-radius:10px;padding:9px 22px;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:all .15s ease;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 2px 14px rgba(177,75,244,.3)}
+  .tab:hover:not(.active){color:var(--text);background:var(--surface-2)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .prizes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:18px}
+  .pz{background:var(--surface);padding:14px 16px}
+  .pz .k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .pz .v{font-size:22px;font-weight:800;font-family:var(--mono);margin-top:5px}
+  .pz .v.gold{color:#F6B83C}.pz .v.silver{color:#A0AEC0}.pz .v.bronze{color:#C07850}
+  .scoring-key{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;align-items:center}
+  .sk{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted)}
+  .sk b{color:var(--text);font-family:var(--mono);font-size:13px}
+  .sk-arrow{color:var(--faint);font-size:11px}
+  .ldr-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;color:var(--muted);font-size:11.5px;align-items:center}
+  .lpick{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:4px;text-transform:uppercase}
+  .lpick.q{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.35)}
+  .lpick.x{background:var(--out-bg);color:var(--out);border:1px solid rgba(255,90,110,.35)}
+  .lpick.p{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .tbl-wrap{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+  .ltable{width:100%;border-collapse:collapse;font-size:13.5px}
+  .ltable thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  .ltable thead th.tr{text-align:right}
+  .ltable tbody tr{border-top:1px solid var(--line);transition:background .12s}
+  .ltable tbody tr:first-child{border-top:none}
+  .ltable tbody tr:hover{background:var(--surface-2)}
+  .ltable tbody td{padding:10px 14px;vertical-align:middle}
+  .lrank-col{width:44px;text-align:center!important}
+  .lpts-col{font-family:var(--mono)!important;font-weight:800!important;font-size:17px!important;text-align:right!important;padding-right:10px!important;width:52px}
+  .lname-col{font-weight:600}
+  .rk-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink)}
+  .rk-badge.r1{background:#F6B83C}.rk-badge.r2{background:#A0AEC0}.rk-badge.r3{background:#C07850}
+  .rk-badge.rn{background:var(--surface-2);color:var(--faint);border:1px solid var(--line)}
+  .lpicks{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .pick-chip{font-size:10.5px;padding:2px 7px;border-radius:4px;white-space:nowrap;font-weight:600}
+  .pick-chip.q{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.3)}
+  .pick-chip.x{background:var(--out-bg);color:var(--out);border:1px solid rgba(255,90,110,.3);text-decoration:line-through;opacity:.65}
+  .pick-chip.p{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .top1 td.lpts-col{color:#F6B83C!important}.top1{background:rgba(246,184,60,.04)!important}
+  .top2 td.lpts-col{color:#A0AEC0!important}.top2{background:rgba(160,174,192,.04)!important}
+  .top3 td.lpts-col{color:#C07850!important}.top3{background:rgba(192,120,80,.04)!important}
+  .ribbon{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:14px}
+  .ribbon .cell{background:var(--surface);padding:16px 18px}
+  .ribbon .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .ribbon .v{font-size:26px;font-weight:800;font-family:var(--mono);margin-top:6px;letter-spacing:-.02em}
+  .ribbon .v small{font-size:13px;color:var(--faint);font-weight:600}
+  .meter{height:8px;border-radius:999px;background:var(--ink-2);overflow:hidden;margin-top:12px;border:1px solid var(--line)}
+  .meter>i{display:block;height:100%;background:linear-gradient(90deg,var(--go),var(--accent-2));transition:width .8s cubic-bezier(.2,.7,.2,1)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:14px 2px 22px;color:var(--muted);font-size:12px}
+  .legend .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(312px,1fr));gap:14px}
+  .card{background:linear-gradient(180deg,var(--surface),var(--ink-2));border:1px solid var(--line);border-radius:16px;padding:14px 14px 8px;box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease}
+  .card:hover{transform:translateY(-2px);border-color:#384258}
+  .card h2{margin:0 0 2px;display:flex;align-items:baseline;gap:10px}
+  .card h2 .g{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .card h2 .gl{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .card .tag{margin-left:auto;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--bubble);font-weight:700}
+  table.gtable{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+  table.gtable thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:right;padding:4px 5px}
+  table.gtable thead th.tname{text-align:left}
+  table.gtable tbody td{padding:7px 5px;border-top:1px solid var(--line);font-family:var(--mono);text-align:right}
+  table.gtable tbody td.tname{text-align:left;font-family:var(--sans);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+  table.gtable tbody td.pts{font-weight:800}
+  .pos{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-family:var(--mono);font-size:11px;font-weight:700;margin-right:8px;color:var(--ink);vertical-align:1px}
+  .p1,.p2{background:var(--go)}.p3{background:var(--bubble)}.p4{background:#3a4253;color:var(--muted)}
+  .row-go td.tname{color:#bdf7d6}.row-bubble td.tname{color:#ffe4ad}.row-out td.tname{color:var(--muted)}
+  .badge{font-family:var(--sans);font-size:9px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:5px;margin-left:8px;vertical-align:1px;text-transform:uppercase}
+  .badge.q{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.35)}
+  .badge.w{background:var(--accent);color:#fff}
+  .badge.x{background:var(--out-bg);color:var(--out);border:1px solid rgba(255,90,110,.35)}
+  .badge.live{background:rgba(55,224,232,.14);color:var(--accent-2);border:1px solid rgba(55,224,232,.35)}
+  .race{margin-top:22px;background:linear-gradient(180deg,var(--surface),var(--ink-2));border:1px solid var(--line);border-radius:18px;padding:18px 18px 8px;box-shadow:var(--shadow)}
+  .race h3{margin:0 0 2px;font-size:16px;font-weight:800}
+  .race .hint{color:var(--muted);font-size:12.5px;margin:4px 0 14px;max-width:80ch}
+  .rhead{display:grid;grid-template-columns:30px 1fr 64px 56px 56px;gap:10px;padding:0 8px 6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .rhead span:nth-child(n+3){text-align:right}
+  .rrow{display:grid;grid-template-columns:30px 1fr 64px 56px 56px;gap:10px;align-items:center;padding:9px 8px;border-radius:9px;font-size:13.5px}
+  .rrow .rk{font-family:var(--mono);color:var(--faint);text-align:center}
+  .rrow .rt{font-weight:600}
+  .rrow .rt .grp{color:var(--faint);font-family:var(--mono);font-size:11px;margin-left:8px}
+  .rrow .num{font-family:var(--mono);text-align:right;color:var(--muted)}
+  .rrow.in{background:var(--go-bg)}.rrow.in .rk{color:var(--go)}.rrow.out{opacity:.62}
+  .cutline{display:flex;align-items:center;gap:12px;margin:8px 4px;color:var(--bubble);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+  .cutline:before,.cutline:after{content:"";height:0;flex:1;border-top:2px dashed rgba(246,184,60,.5)}
+  footer{color:var(--faint);font-size:11.5px;text-align:center;margin:26px 0 6px;line-height:1.7}
+
+  /* RIVALS */
+  .rivals-select-wrap{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+  .rivals-select-wrap label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .rivals-select{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 14px;color:var(--text);font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;min-width:200px;appearance:none;outline:none}
+  .rivals-select:focus{border-color:var(--accent)}
+  .rivals-hint{color:var(--muted);font-size:12.5px;margin-bottom:16px}
+  .rivals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .rival-card{background:linear-gradient(180deg,var(--surface),var(--ink-2));border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);transition:transform .18s ease,border-color .18s ease}
+  .rival-card:hover{transform:translateY(-2px);border-color:#384258}
+  .rival-name{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+  .overlap-badge{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:.04em}
+  .rival-section{margin-top:10px}
+  .rival-section-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:5px}
+  .rival-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .rchip{font-size:11px;padding:3px 8px;border-radius:5px;font-weight:600;white-space:nowrap}
+  .rchip.shared{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.3)}
+  .rchip.mine{background:rgba(177,75,244,.15);color:#d198ff;border:1px solid rgba(177,75,244,.35)}
+  .rchip.theirs{background:rgba(246,184,60,.12);color:var(--bubble);border:1px solid rgba(246,184,60,.3)}
+  .rivals-empty{color:var(--muted);font-size:14px;padding:40px 0;text-align:center}
+  @media(max-width:600px){
+    .prizes{grid-template-columns:repeat(2,1fr)}
+    .ribbon{grid-template-columns:repeat(2,1fr)}
+    .rrow,.rhead{grid-template-columns:26px 1fr 52px 46px}
+    .rrow .num.gf,.rhead span.gf{display:none}
+    .scoring-key{gap:5px}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">2026 FIFA World Cup - Tipping Competition</p>
+    <h1>World Cup <span class="arrow">Tracker</span></h1>
+    <p class="stamp"><span class="ro">Read-only</span><span><b>Updated:</b> <span id="stampOut">--</span></span></p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="ladder">Ladder</button>
+    <button class="tab" data-tab="draw">Draw</button>
+    <button class="tab" data-tab="r32">Road to 32</button>
+    <button class="tab" data-tab="rivals">Rivals</button>
+  </nav>
+
+  <div id="tab-ladder" class="tab-panel active">
+    <div class="prizes">
+      <div class="pz"><div class="k">Prize pool</div><div class="v">$1,300</div></div>
+      <div class="pz"><div class="k">1st place</div><div class="v gold">$900</div></div>
+      <div class="pz"><div class="k">2nd place</div><div class="v silver">$250</div></div>
+      <div class="pz"><div class="k">3rd place</div><div class="v bronze">$150</div></div>
+    </div>
+    <div class="scoring-key">
+      <span style="color:var(--muted);font-size:11px;margin-right:4px">Points per team:</span>
+      <span class="sk"><b>+2</b> qualify from groups</span>
+      <span class="sk-arrow">&#8594;</span>
+      <span class="sk"><b>+2</b> win R32</span>
+      <span class="sk-arrow">&#8594;</span>
+      <span class="sk"><b>+2</b> win R16</span>
+      <span class="sk-arrow">&#8594;</span>
+      <span class="sk"><b>+2</b> win QF</span>
+      <span class="sk-arrow">&#8594;</span>
+      <span class="sk"><b>+2</b> win SF</span>
+      <span class="sk-arrow">&#8594;</span>
+      <span class="sk"><b>+2</b> win Final</span>
+    </div>
+    <div class="ldr-legend">
+      <span><span class="lpick q">Qualified</span> advanced from groups - 2 pts</span>
+      <span><span class="lpick x">Out</span> eliminated - 0 pts</span>
+      <span><span class="lpick p">Playing</span> still in group stage</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="ltable">
+        <thead>
+          <tr>
+            <th class="lrank-col">#</th>
+            <th>Entrant &amp; Picks</th>
+            <th class="tr">Pts</th>
+          </tr>
+        </thead>
+        <tbody id="ladderBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-r32" class="tab-panel">
+    <div class="ribbon">
+      <div class="cell"><div class="k">Spots clinched</div><div class="v" id="sFilled">0 <small>/ 32</small></div>
+        <div class="meter"><i id="sMeter" style="width:0%"></i></div></div>
+      <div class="cell"><div class="k">Qualified</div><div class="v" id="sQual">0</div></div>
+      <div class="cell"><div class="k">Eliminated</div><div class="v" id="sOut">0</div></div>
+      <div class="cell"><div class="k">Groups decided</div><div class="v" id="sDecided">0 <small>/ 12</small></div></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--go)"></i>Top 2 - auto-qualify</span>
+      <span><i class="dot" style="background:var(--bubble)"></i>3rd - best-eight race</span>
+      <span><i class="dot" style="background:#3a4253"></i>4th - likely out</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Group winner clinched</span>
+      <span><i class="dot" style="background:var(--out)"></i>Eliminated</span>
+    </div>
+    <div class="grid" id="groupGrid"></div>
+    <div class="race">
+      <h3>Third-place race - best 8 advance</h3>
+      <p class="hint" id="raceHint"></p>
+      <div class="rhead"><span></span><span>Team</span><span>Pts</span><span>GD</span><span class="gf">GF</span></div>
+      <div id="raceList"></div>
+    </div>
+  </div>
+
+  <div id="tab-rivals" class="tab-panel">
+    <div class="rivals-select-wrap">
+      <label for="rivalSelect">Your name:</label>
+      <select class="rivals-select" id="rivalSelect">
+        <option value="">-- select --</option>
+      </select>
+    </div>
+    <p class="rivals-hint" id="rivalsHint">Select your name to see who has 3 or more picks in common with you.</p>
+    <div class="rivals-grid" id="rivalsGrid"></div>
+  </div>
+
+  <div id="tab-draw" class="tab-panel">
+    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px">R32 bracket structure - progression TBD after group stage. 3rd-place slots depend on final group standings.</p>
+    <div style="overflow-x:auto;padding-bottom:10px">
+      <div id="bracketSvg"></div>
+    </div>
+  </div>
+
+  <footer>
+    Standings reflect completed matches only; games in progress are tagged LIVE and not yet counted.
+    Auto-refreshed by Claude (Cowork scheduled task). Not affiliated with FIFA.
+  </footer>
+</div>
+
+<script>
+
+/* DATA_START */
+const DATA = {
+  updated: "21 June 2026",
+  note: "MD2 complete for Groups A-F. Groups G-H on MD1 only. Groups I-L on MD1 only. Mexico, USA, Germany qualified (MD3 pending); Haiti, Turkiye, Tunisia eliminated.",
+  groups: {
+    A:[{n:"Mexico",w:2,d:0,l:0,gf:3,ga:0,s:"qualified"},{n:"South Korea",w:1,d:0,l:1,gf:2,ga:2,s:""},{n:"Czechia",w:0,d:1,l:1,gf:2,ga:3,s:""},{n:"South Africa",w:0,d:1,l:1,gf:1,ga:3,s:""}],
+    B:[{n:"Canada",w:1,d:1,l:0,gf:7,ga:1,s:""},{n:"Switzerland",w:1,d:1,l:0,gf:5,ga:2,s:""},{n:"Bosnia & H.",w:0,d:1,l:1,gf:2,ga:5,s:""},{n:"Qatar",w:0,d:1,l:1,gf:1,ga:7,s:""}],
+    C:[{n:"Brazil",w:1,d:1,l:0,gf:4,ga:1,s:""},{n:"Morocco",w:1,d:1,l:0,gf:2,ga:1,s:""},{n:"Scotland",w:1,d:0,l:1,gf:1,ga:1,s:""},{n:"Haiti",w:0,d:0,l:2,gf:0,ga:4,s:"out"}],
+    D:[{n:"USA",w:2,d:0,l:0,gf:6,ga:1,s:"qualified"},{n:"Australia",w:1,d:0,l:1,gf:2,ga:2,s:""},{n:"Paraguay",w:1,d:0,l:1,gf:2,ga:4,s:""},{n:"Turkiye",w:0,d:0,l:2,gf:0,ga:3,s:"out"}],
+    E:[{n:"Germany",w:2,d:0,l:0,gf:9,ga:2,s:"qualified"},{n:"Ivory Coast",w:1,d:0,l:1,gf:2,ga:2,s:""},{n:"Ecuador",w:0,d:1,l:1,gf:0,ga:1,s:""},{n:"Curacao",w:0,d:1,l:1,gf:1,ga:7,s:""}],
+    F:[{n:"Netherlands",w:1,d:1,l:0,gf:7,ga:3,s:""},{n:"Japan",w:1,d:1,l:0,gf:6,ga:2,s:""},{n:"Sweden",w:1,d:0,l:1,gf:6,ga:6,s:""},{n:"Tunisia",w:0,d:0,l:2,gf:1,ga:9,s:"out"}],
+    G:[{n:"New Zealand",w:0,d:1,l:0,gf:2,ga:2,s:""},{n:"IR Iran",w:0,d:1,l:0,gf:2,ga:2,s:""},{n:"Belgium",w:0,d:1,l:0,gf:1,ga:1,s:""},{n:"Egypt",w:0,d:1,l:0,gf:1,ga:1,s:""}],
+    H:[{n:"Uruguay",w:0,d:1,l:0,gf:1,ga:1,s:""},{n:"Saudi Arabia",w:0,d:1,l:0,gf:1,ga:1,s:""},{n:"Spain",w:0,d:1,l:0,gf:0,ga:0,s:""},{n:"Cabo Verde",w:0,d:1,l:0,gf:0,ga:0,s:""}],
+    I:[{n:"Norway",w:1,d:0,l:0,gf:4,ga:1,s:""},{n:"France",w:1,d:0,l:0,gf:3,ga:1,s:""},{n:"Senegal",w:0,d:0,l:1,gf:1,ga:3,s:""},{n:"Iraq",w:0,d:0,l:1,gf:1,ga:4,s:""}],
+    J:[{n:"Argentina",w:1,d:0,l:0,gf:3,ga:0,s:""},{n:"Austria",w:1,d:0,l:0,gf:3,ga:1,s:""},{n:"Jordan",w:0,d:0,l:1,gf:1,ga:3,s:""},{n:"Algeria",w:0,d:0,l:1,gf:0,ga:3,s:""}],
+    K:[{n:"Colombia",w:1,d:0,l:0,gf:3,ga:1,s:""},{n:"DR Congo",w:0,d:1,l:0,gf:1,ga:1,s:""},{n:"Portugal",w:0,d:1,l:0,gf:1,ga:1,s:""},{n:"Uzbekistan",w:0,d:0,l:1,gf:1,ga:3,s:""}],
+    L:[{n:"England",w:1,d:0,l:0,gf:4,ga:2,s:""},{n:"Ghana",w:1,d:0,l:0,gf:1,ga:0,s:""},{n:"Panama",w:0,d:0,l:1,gf:0,ga:1,s:""},{n:"Croatia",w:0,d:0,l:1,gf:2,ga:4,s:""}]
+  }
+};
+/* DATA_END */
+
+const ALIAS = {"Iran":"IR Iran","Cape Verde":"Cabo Verde","Turkiye":"Turkiye","Curacao":"Curacao"};
+const ENTRIES = [
+  {name:"Adam Davies",picks:["France","Colombia","Mexico","South Korea","Australia"]},
+  {name:"Alan Rowe",picks:["France","Portugal","Japan","South Korea","Scotland"]},
+  {name:"Alex Willson",picks:["France","Portugal","Mexico","Paraguay","Scotland"]},
+  {name:"Andrew Rowe",picks:["France","Portugal","Uruguay","South Korea","Australia"]},
+  {name:"Anthony Dundo",picks:["Germany","Portugal","Croatia","Iran","Australia"]},
+  {name:"Archie Norrish",picks:["Spain","Netherlands","Croatia","Canada","Australia"]},
+  {name:"Ben Allan",picks:["France","Netherlands","Croatia","Paraguay","New Zealand"]},
+  {name:"Ben Lomas",picks:["Germany","Netherlands","Switzerland","South Korea","Scotland"]},
+  {name:"Charles Paterson",picks:["Spain","Belgium","Mexico","Algeria","Scotland"]},
+  {name:"Charles Wortelboer",picks:["Spain","Netherlands","Mexico","Paraguay","Scotland"]},
+  {name:"Chris Graham",picks:["Brazil","Netherlands","Japan","Canada","Australia"]},
+  {name:"Damian Crimmins",picks:["Spain","Netherlands","Mexico","Ivory Coast","Scotland"]},
+  {name:"Dani Halikis",picks:["Brazil","Netherlands","Switzerland","Canada","Curacao"]},
+  {name:"David Traynor",picks:["Spain","Portugal","Uruguay","South Korea","Australia"]},
+  {name:"Drew Hall",picks:["England","Netherlands","Mexico","South Korea","Saudi Arabia"]},
+  {name:"Drew Hoar",picks:["Spain","Portugal","Japan","Egypt","Australia"]},
+  {name:"Dylan Olivier",picks:["France","Norway","Mexico","Ivory Coast","Scotland"]},
+  {name:"Gary Andrews",picks:["Spain","Portugal","Croatia","Czechia","Uzbekistan"]},
+  {name:"George Nicholls",picks:["Spain","USA","Mexico","South Korea","Australia"]},
+  {name:"Graham Peberdy",picks:["Argentina","Morocco","Mexico","Egypt","Saudi Arabia"]},
+  {name:"Greg Peters",picks:["France","Portugal","Mexico","Canada","Cape Verde"]},
+  {name:"Hams Van der Kruk",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Argentina"},
+  {name:"Ismael Leis",picks:["France","Portugal","Mexico","Canada","Qatar"]},
+  {name:"James Staples",picks:["England","USA","Sweden","Ghana","South Africa"]},
+  {name:"Joel Peters",picks:["France","Portugal","Ecuador","Czechia","Scotland"]},
+  {name:"Justine Radacic",picks:["Spain","Morocco","Croatia","South Korea","Iraq"]},
+  {name:"Lucas Peberdy",picks:["Spain","Portugal","Turkiye","Egypt","Australia"]},
+  {name:"Mark Pace",picks:["England","Portugal","Mexico","Czechia","Scotland"]},
+  {name:"Mark Shipley",picks:["England","USA","Mexico","Canada","Scotland"]},
+  {name:"Mark Stupples",picks:["England","Portugal","Sweden","South Korea","Australia"]},
+  {name:"Matthew Holton",picks:["Spain","Portugal","Japan","South Korea","Australia"],tb:"England"},
+  {name:"Mia Weaver",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Spain"},
+  {name:"Mitchell Tatam",picks:["Spain","Portugal","Uruguay","South Korea","Scotland"]},
+  {name:"Monty Bilton",picks:["France","Belgium","Turkiye","Canada","Scotland"]},
+  {name:"Nate Radacic",picks:["France","Portugal","Turkiye","South Korea","Australia"]},
+  {name:"Nathan Kime",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Brazil"},
+  {name:"Neale Mcquire",picks:["England","Portugal","Senegal","South Korea","Scotland"]},
+  {name:"Peter Nain",picks:["Spain","Portugal","Japan","South Korea","Australia"],tb:"France"},
+  {name:"Ping Zhou",picks:["Brazil","Portugal","Japan","Ivory Coast","South Africa"]},
+  {name:"Rhett Martini",picks:["Argentina","Portugal","Croatia","South Korea","Australia"]},
+  {name:"Ryan Walker",picks:["Argentina","Colombia","Mexico","Egypt","Australia"]},
+  {name:"Rykiel D'Mello",picks:["Spain","Netherlands","Japan","Ivory Coast","Jordan"]},
+  {name:"Sam Eckley",picks:["England","Belgium","Mexico","Ivory Coast","Australia"]},
+  {name:"Sam Norrish",picks:["France","Portugal","Japan","Ivory Coast","Australia"]},
+  {name:"Scott Ferguson",picks:["France","Portugal","Japan","Czechia","Scotland"]},
+  {name:"Simon Weaver",picks:["Spain","Portugal","Mexico","Canada","Scotland"]},
+  {name:"Simone Sichel",picks:["Spain","Norway","Austria","South Korea","Australia"]},
+  {name:"Spyros Halikis",picks:["Germany","Netherlands","Mexico","Egypt","Australia"]},
+  {name:"Troy Tatam",picks:["France","Netherlands","Senegal","Paraguay","Australia"]},
+  {name:"Warwick Saupold",picks:["France","Portugal","Uruguay","Ghana","Australia"]},
+  {name:"Wes Fleiser",picks:["Spain","Portugal","Croatia","Ivory Coast","New Zealand"]},
+  {name:"Zeke Kennedy",picks:["Argentina","Colombia","Ecuador","Canada","Australia"]}
+];
+const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+const pts = t => t.w*3+t.d, gd = t => t.gf-t.ga, played = t => t.w+t.d+t.l;
+const ranked = teams => teams.map((t,i) => ({...t,_i:i})).sort((a,b) => pts(b)-pts(a)||gd(b)-gd(a)||b.gf-a.gf||a.n.localeCompare(b.n));
+
+function teamStatus(name) {
+  const n = ALIAS[name] || name;
+  for (const g of GROUPS) for (const t of DATA.groups[g]) if (t.n === n) return t.s || '';
+  return '';
+}
+function teamScore(name) {
+  const s = teamStatus(name);
+  return (s === 'winner' || s === 'qualified') ? 2 : 0;
+}
+function pickCls(name) {
+  const s = teamStatus(name);
+  return (s === 'winner' || s === 'qualified') ? 'q' : s === 'out' ? 'x' : 'p';
+}
+
+function renderLadder() {
+  const scored = ENTRIES.map(e => {
+    const norm = e.picks.map(p => ALIAS[p] || p);
+    const score = norm.reduce((s,p) => s + teamScore(p), 0);
+    return {name: e.name, picks: e.picks, pts: score};
+  }).sort((a,b) => b.pts - a.pts || a.name.localeCompare(b.name));
+
+  const tbody = document.getElementById('ladderBody');
+  tbody.innerHTML = '';
+  let rank = 1;
+  scored.forEach((e, i) => {
+    if (i > 0 && e.pts < scored[i-1].pts) rank = i + 1;
+    const rkCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
+    const rowCls = rank===1?' top1':rank===2?' top2':rank===3?' top3':'';
+    const chips = e.picks.map(p => '<span class="pick-chip ' + pickCls(p) + '">' + (ALIAS[p]||p) + '</span>').join('');
+    const tr = document.createElement('tr');
+    tr.className = rowCls;
+    tr.innerHTML = '<td class="lrank-col"><span class="rk-badge ' + rkCls + '">' + rank + '</span></td>' +
+      '<td class="lname-col"><div>' + e.name + '</div><div class="lpicks">' + chips + '</div></td>' +
+      '<td class="lpts-col">' + e.pts + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderR32() {
+  document.getElementById("stampOut").textContent = DATA.updated;
+  const grid = document.getElementById("groupGrid");
+  grid.innerHTML = "";
+  let qual = 0, out = 0, decided = 0;
+  GROUPS.forEach(g => {
+    const teams = ranked(DATA.groups[g]);
+    const allDeep = teams.every(t => played(t) >= 2);
+    const live = DATA.groups[g].some(t => t.s === "live");
+    if (teams[0] && teams[0].s === "winner") decided++;
+    let rows = "";
+    teams.forEach((t, idx) => {
+      const pos = idx+1, cls = pos<=2?"row-go":pos===3?"row-bubble":"row-out";
+      let badge = "";
+      if (t.s==="winner") badge = '<span class="badge w">Winner</span>';
+      else if (t.s==="qualified") badge = '<span class="badge q">Q</span>';
+      else if (t.s==="out") badge = '<span class="badge x">Out</span>';
+      else if (t.s==="live") badge = '<span class="badge live">Live</span>';
+      rows += '<tr class="' + cls + '"><td class="tname"><span class="pos p' + pos + '">' + pos + '</span>' + t.n + badge + '</td>' +
+        '<td>' + played(t) + '</td><td>' + t.w + '</td><td>' + t.d + '</td><td>' + t.l + '</td>' +
+        '<td>' + (gd(t)>0?"+":"") + gd(t) + '</td><td class="pts">' + pts(t) + '</td></tr>';
+      if (t.s==="winner"||t.s==="qualified") qual++;
+      if (t.s==="out") out++;
+    });
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = '<h2><span class="g">Group</span><span class="gl">' + g + '</span>' +
+      (live ? '<span class="tag">live</span>' : (!allDeep ? '<span class="tag">round 1</span>' : '')) + '</h2>' +
+      '<table class="gtable"><thead><tr><th class="tname">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>';
+    grid.appendChild(card);
+  });
+  document.getElementById("sQual").textContent = qual;
+  document.getElementById("sOut").textContent = out;
+  document.getElementById("sDecided").innerHTML = decided + ' <small>/ 12</small>';
+  document.getElementById("sFilled").innerHTML = qual + ' <small>/ 32</small>';
+  document.getElementById("sMeter").style.width = Math.round(qual/32*100) + "%";
+
+  const thirds = GROUPS.map(g => {
+    const teams = ranked(DATA.groups[g]); const t = teams[2];
+    return {g, n:t.n, pts:pts(t), gd:gd(t), gf:t.gf, settled:teams.every(x => played(x)>=2)};
+  }).sort((a,b) => b.pts-a.pts||b.gd-a.gd||b.gf-a.gf);
+  const list = document.getElementById("raceList");
+  list.innerHTML = "";
+  thirds.forEach((t, i) => {
+    if (i===8) {
+      const cut = document.createElement("div");
+      cut.className = "cutline";
+      cut.textContent = "Qualification cut - top 8";
+      list.appendChild(cut);
+    }
+    const row = document.createElement("div");
+    row.className = "rrow " + (i<8?"in":"out");
+    row.innerHTML = '<div class="rk">' + (i+1) + '</div>' +
+      '<div class="rt">' + t.n + '<span class="grp">GRP ' + t.g + (t.settled?"":" MD1") + '</span></div>' +
+      '<div class="num">' + t.pts + '</div>' +
+      '<div class="num">' + (t.gd>0?"+":"") + t.gd + '</div>' +
+      '<div class="num gf">' + t.gf + '</div>';
+    list.appendChild(row);
+  });
+  document.getElementById("raceHint").textContent = DATA.note;
+}
+
+function renderBracket() {
+  const W=1200,H=720,SW=110,SH=26,GP=4;
+  const LX=[45,170,295,420],FX=545,RX=[1045,920,795,670];
+  const R32Y=[45,135,225,315,405,495,585,675];
+  const R16Y=[90,270,450,630],QFY=[180,540],SFY=[360];
+
+  const L32=[
+    {a:'1E',b:'3rd'},{a:'1I',b:'3rd'},
+    {a:'2A',b:'2B'},{a:'1F',b:'2C'},
+    {a:'2K',b:'2L'},{a:'1H',b:'2J'},
+    {a:'1D',b:'3rd'},{a:'1G',b:'3rd'}
+  ];
+  const R32=[
+    {a:'1C',b:'2F'},{a:'2E',b:'2I'},
+    {a:'1A',b:'3rd'},{a:'1L',b:'3rd'},
+    {a:'1J',b:'2H'},{a:'2D',b:'2G'},
+    {a:'1B',b:'3rd'},{a:'1K',b:'3rd'}
+  ];
+
+  function res(pos) {
+    if (pos==='3rd') return {name:'3rd',cls:'tbd'};
+    const m=pos.match(/^([12])([A-L])$/);
+    if (!m) return {name:pos,cls:'tbd'};
+    const t=ranked(DATA.groups[m[2]])[parseInt(m[1])-1];
+    if (!t) return {name:pos,cls:'tbd'};
+    return {name:t.n,cls:(t.s==='winner'||t.s==='qualified')?'q':t.s==='out'?'x':'p',label:pos};
+  }
+
+  let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+W+'px;display:block">'
+    +'<defs><style>'
+    +'.bsl{fill:#1D2433;stroke:#283042;stroke-width:1}'
+    +'.bsl.q{fill:rgba(43,213,118,.12);stroke:#2BD576}'
+    +'.bsl.x{fill:rgba(255,90,110,.08);stroke:#FF5A6E;opacity:.55}'
+    +'.bsl.tbd{fill:#161C2A;stroke:#283042}'
+    +'.bsl.fin{fill:rgba(177,75,244,.15);stroke:#B14BF4}'
+    +'.btx{font:600 10px/1 sans-serif;fill:#E8EDF4;dominant-baseline:middle}'
+    +'.btx.q{fill:#2BD576}.btx.x{fill:#FF5A6E}.btx.tbd{fill:#5B6577}.btx.fin{fill:#d198ff}'
+    +'.blb{font:7px/1 monospace;fill:#5B6577;dominant-baseline:middle}'
+    +'.bl{stroke:#283042;stroke-width:1;fill:none}'
+    +'.brt{font:700 8px/1 sans-serif;fill:#5B6577;letter-spacing:.1em;text-anchor:middle}'
+    +'</style></defs>';
+
+  const RNDS=['R32','R16','QF','SF'];
+  LX.forEach((x,i)=>{ s+='<text class="brt" x="'+(x+SW/2)+'" y="14">'+RNDS[i]+'</text>'; });
+  RX.forEach((x,i)=>{ s+='<text class="brt" x="'+(x+SW/2)+'" y="14">'+RNDS[i]+'</text>'; });
+  s+='<text class="brt" x="'+(FX+SW/2)+'" y="14" style="fill:#9a6fd8">FINAL</text>';
+  s+='<text style="font-size:20px;text-anchor:middle" x="'+(FX+SW/2)+'" y="'+(SFY[0]-SH-GP/2-10)+'">&#127942;</text>';
+
+  function drawMatch(m,x,cy) {
+    const ta=res(m.a),tb=res(m.b);
+    const y1=cy-SH-GP/2,y2=cy+GP/2;
+    [['bsl '+ta.cls,'btx '+ta.cls,y1,ta,m.a],[' bsl '+tb.cls,'btx '+tb.cls,y2,tb,m.b]].forEach(([rc,tc,y,t,pos])=>{
+      s+='<rect class="'+rc.trim()+'" x="'+x+'" y="'+y+'" width="'+SW+'" height="'+SH+'" rx="3"/>';
+      s+='<text class="'+tc+'" x="'+(x+5)+'" y="'+(y+SH/2+0.5)+'">'+t.name+'</text>';
+      if(pos!=='3rd') s+='<text class="blb" x="'+(x+SW-3)+'" y="'+(y+SH/2+0.5)+'" text-anchor="end">'+pos+'</text>';
+    });
+  }
+
+  function drawTBD(x,cy,cls) {
+    const c=cls||'tbd', y1=cy-SH-GP/2, y2=cy+GP/2;
+    [y1,y2].forEach(y=>{
+      s+='<rect class="bsl '+c+'" x="'+x+'" y="'+y+'" width="'+SW+'" height="'+SH+'" rx="3"/>';
+      s+='<text class="btx '+c+'" x="'+(x+5)+'" y="'+(y+SH/2+0.5)+'">TBD</text>';
+    });
+  }
+
+  function connL(fromY,toY,fx,tx) {
+    const mx=(fx+tx)/2;
+    for(let i=0;i<toY.length;i++){
+      const y1=fromY[i*2],y2=fromY[i*2+1],ty=toY[i];
+      s+='<line class="bl" x1="'+fx+'" y1="'+y1+'" x2="'+mx+'" y2="'+y1+'"/>';
+      s+='<line class="bl" x1="'+fx+'" y1="'+y2+'" x2="'+mx+'" y2="'+y2+'"/>';
+      s+='<line class="bl" x1="'+mx+'" y1="'+y1+'" x2="'+mx+'" y2="'+y2+'"/>';
+      s+='<line class="bl" x1="'+mx+'" y1="'+ty+'" x2="'+tx+'" y2="'+ty+'"/>';
+    }
+  }
+
+  function connR(fromY,toY,fx,tx) {
+    const mx=(fx+tx)/2;
+    for(let i=0;i<toY.length;i++){
+      const y1=fromY[i*2],y2=fromY[i*2+1],ty=toY[i];
+      s+='<line class="bl" x1="'+fx+'" y1="'+y1+'" x2="'+mx+'" y2="'+y1+'"/>';
+      s+='<line class="bl" x1="'+fx+'" y1="'+y2+'" x2="'+mx+'" y2="'+y2+'"/>';
+      s+='<line class="bl" x1="'+mx+'" y1="'+y1+'" x2="'+mx+'" y2="'+y2+'"/>';
+      s+='<line class="bl" x1="'+mx+'" y1="'+ty+'" x2="'+tx+'" y2="'+ty+'"/>';
+    }
+  }
+
+  L32.forEach((m,i)=>drawMatch(m,LX[0],R32Y[i]));
+  R16Y.forEach(cy=>drawTBD(LX[1],cy));
+  QFY.forEach(cy=>drawTBD(LX[2],cy));
+  SFY.forEach(cy=>drawTBD(LX[3],cy));
+  connL(R32Y,R16Y,LX[0]+SW,LX[1]);
+  connL(R16Y,QFY,LX[1]+SW,LX[2]);
+  connL(QFY,SFY,LX[2]+SW,LX[3]);
+  s+='<line class="bl" x1="'+(LX[3]+SW)+'" y1="'+SFY[0]+'" x2="'+FX+'" y2="'+SFY[0]+'"/>';
+
+  R32.forEach((m,i)=>drawMatch(m,RX[0],R32Y[i]));
+  R16Y.forEach(cy=>drawTBD(RX[1],cy));
+  QFY.forEach(cy=>drawTBD(RX[2],cy));
+  SFY.forEach(cy=>drawTBD(RX[3],cy));
+  connR(R32Y,R16Y,RX[0],RX[1]+SW);
+  connR(R16Y,QFY,RX[1],RX[2]+SW);
+  connR(QFY,SFY,RX[2],RX[3]+SW);
+  s+='<line class="bl" x1="'+RX[3]+'" y1="'+SFY[0]+'" x2="'+(FX+SW)+'" y2="'+SFY[0]+'"/>';
+
+  drawTBD(FX,SFY[0],'fin');
+  s+='</svg>';
+  document.getElementById('bracketSvg').innerHTML=s;
+}
+
+function renderRivals() {
+  const sel = document.getElementById('rivalSelect');
+  const myName = sel.value;
+  const grid = document.getElementById('rivalsGrid');
+  const hint = document.getElementById('rivalsHint');
+  grid.innerHTML = '';
+  if (!myName) { hint.textContent = 'Select your name to see who has 3 or more picks in common with you.'; return; }
+
+  const me = ENTRIES.find(e => e.name === myName);
+  const myNorm = me.picks.map(p => ALIAS[p] || p);
+
+  const rivals = ENTRIES
+    .filter(e => e.name !== myName)
+    .map(e => {
+      const theirNorm = e.picks.map(p => ALIAS[p] || p);
+      const shared = myNorm.filter(p => theirNorm.includes(p));
+      const myUnique = myNorm.filter(p => !theirNorm.includes(p));
+      const theirUnique = theirNorm.filter(p => !myNorm.includes(p));
+      return {name: e.name, shared, myUnique, theirUnique, count: shared.length, theirTb: e.tb || null};
+    })
+    .filter(r => r.count >= 3)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+  if (rivals.length === 0) {
+    hint.textContent = 'No one shares 3 or more picks with ' + myName + '.';
+    return;
+  }
+  hint.textContent = rivals.length + ' entrant' + (rivals.length===1?'':'s') + ' share 3+ picks with ' + myName + '.';
+
+  rivals.forEach(r => {
+    const sharedChips = r.shared.map(p => '<span class="rchip shared">' + p + '</span>').join('');
+    const myChips = r.myUnique.map(p => '<span class="rchip mine">' + p + '</span>').join('');
+    const theirChips = r.theirUnique.map(p => '<span class="rchip theirs">' + p + '</span>').join('');
+    const card = document.createElement('div');
+    card.className = 'rival-card';
+    const tbHtml = (r.count === 5 && (me.tb || r.theirTb)) ?
+      '<div class="rival-section"><div class="rival-section-label">Tiebreaker</div><div class="rival-chips">' +
+      (me.tb ? '<span class="rchip mine">You: ' + me.tb + '</span>' : '') +
+      (r.theirTb ? '<span class="rchip theirs">' + r.name.split(' ')[0] + ': ' + r.theirTb + '</span>' : '') +
+      '</div></div>' : '';
+    card.innerHTML = '<div class="rival-name">' + r.name +
+      '<span class="overlap-badge">' + r.count + ' in common</span></div>' +
+      '<div class="rival-section"><div class="rival-section-label">Shared picks</div>' +
+      '<div class="rival-chips">' + sharedChips + '</div></div>' +
+      (r.myUnique.length ? '<div class="rival-section"><div class="rival-section-label">Only you have</div>' +
+      '<div class="rival-chips">' + myChips + '</div></div>' : '') +
+      (r.theirUnique.length ? '<div class="rival-section"><div class="rival-section-label">Only ' + r.name.split(' ')[0] + ' has</div>' +
+      '<div class="rival-chips">' + theirChips + '</div></div>' : '') +
+      tbHtml;
+    grid.appendChild(card);
+  });
+}
+
+document.getElementById('rivalSelect').addEventListener('change', renderRivals);
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+(function() {
+  const sel = document.getElementById('rivalSelect');
+  ENTRIES.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.name; opt.textContent = e.name;
+    sel.appendChild(opt);
+  });
+})();
+
+renderLadder();
+renderR32();
+renderBracket();
+
+</script>
+</body>
+</html>

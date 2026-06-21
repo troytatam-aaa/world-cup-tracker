@@ -1,4 +1,60 @@
-NaNconst GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
+NaNconst ALIAS = {"Iran":"IR Iran","Cape Verde":"Cabo Verde","Turkiye":"Turkiye","Curacao":"Curacao"};
+const ENTRIES = [
+  {name:"Adam Davies",picks:["France","Colombia","Mexico","South Korea","Australia"]},
+  {name:"Alan Rowe",picks:["France","Portugal","Japan","South Korea","Scotland"]},
+  {name:"Alex Willson",picks:["France","Portugal","Mexico","Paraguay","Scotland"]},
+  {name:"Andrew Rowe",picks:["France","Portugal","Uruguay","South Korea","Australia"]},
+  {name:"Anthony Dundo",picks:["Germany","Portugal","Croatia","Iran","Australia"]},
+  {name:"Archie Norrish",picks:["Spain","Netherlands","Croatia","Canada","Australia"]},
+  {name:"Ben Allan",picks:["France","Netherlands","Croatia","Paraguay","New Zealand"]},
+  {name:"Ben Lomas",picks:["Germany","Netherlands","Switzerland","South Korea","Scotland"]},
+  {name:"Charles Paterson",picks:["Spain","Belgium","Mexico","Algeria","Scotland"]},
+  {name:"Charles Wortelboer",picks:["Spain","Netherlands","Mexico","Paraguay","Scotland"]},
+  {name:"Chris Graham",picks:["Brazil","Netherlands","Japan","Canada","Australia"]},
+  {name:"Damian Crimmins",picks:["Spain","Netherlands","Mexico","Ivory Coast","Scotland"]},
+  {name:"Dani Halikis",picks:["Brazil","Netherlands","Switzerland","Canada","Curacao"]},
+  {name:"David Traynor",picks:["Spain","Portugal","Uruguay","South Korea","Australia"]},
+  {name:"Drew Hall",picks:["England","Netherlands","Mexico","South Korea","Saudi Arabia"]},
+  {name:"Drew Hoar",picks:["Spain","Portugal","Japan","Egypt","Australia"]},
+  {name:"Dylan Olivier",picks:["France","Norway","Mexico","Ivory Coast","Scotland"]},
+  {name:"Gary Andrews",picks:["Spain","Portugal","Croatia","Czechia","Uzbekistan"]},
+  {name:"George Nicholls",picks:["Spain","USA","Mexico","South Korea","Australia"]},
+  {name:"Graham Peberdy",picks:["Argentina","Morocco","Mexico","Egypt","Saudi Arabia"]},
+  {name:"Greg Peters",picks:["France","Portugal","Mexico","Canada","Cape Verde"]},
+  {name:"Hams Van der Kruk",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Argentina"},
+  {name:"Ismael Leis",picks:["France","Portugal","Mexico","Canada","Qatar"]},
+  {name:"James Staples",picks:["England","USA","Sweden","Ghana","South Africa"]},
+  {name:"Joel Peters",picks:["France","Portugal","Ecuador","Czechia","Scotland"]},
+  {name:"Justine Radacic",picks:["Spain","Morocco","Croatia","South Korea","Iraq"]},
+  {name:"Lucas Peberdy",picks:["Spain","Portugal","Turkiye","Egypt","Australia"]},
+  {name:"Mark Pace",picks:["England","Portugal","Mexico","Czechia","Scotland"]},
+  {name:"Mark Shipley",picks:["England","USA","Mexico","Canada","Scotland"]},
+  {name:"Mark Stupples",picks:["England","Portugal","Sweden","South Korea","Australia"]},
+  {name:"Matthew Holton",picks:["Spain","Portugal","Japan","South Korea","Australia"],tb:"England"},
+  {name:"Mia Weaver",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Spain"},
+  {name:"Mitchell Tatam",picks:["Spain","Portugal","Uruguay","South Korea","Scotland"]},
+  {name:"Monty Bilton",picks:["France","Belgium","Turkiye","Canada","Scotland"]},
+  {name:"Nate Radacic",picks:["France","Portugal","Turkiye","South Korea","Australia"]},
+  {name:"Nathan Kime",picks:["France","Portugal","Senegal","Ivory Coast","Scotland"],tb:"Brazil"},
+  {name:"Neale Mcquire",picks:["England","Portugal","Senegal","South Korea","Scotland"]},
+  {name:"Peter Nain",picks:["Spain","Portugal","Japan","South Korea","Australia"],tb:"France"},
+  {name:"Ping Zhou",picks:["Brazil","Portugal","Japan","Ivory Coast","South Africa"]},
+  {name:"Rhett Martini",picks:["Argentina","Portugal","Croatia","South Korea","Australia"]},
+  {name:"Ryan Walker",picks:["Argentina","Colombia","Mexico","Egypt","Australia"]},
+  {name:"Rykiel D'Mello",picks:["Spain","Netherlands","Japan","Ivory Coast","Jordan"]},
+  {name:"Sam Eckley",picks:["England","Belgium","Mexico","Ivory Coast","Australia"]},
+  {name:"Sam Norrish",picks:["France","Portugal","Japan","Ivory Coast","Australia"]},
+  {name:"Scott Ferguson",picks:["France","Portugal","Japan","Czechia","Scotland"]},
+  {name:"Simon Weaver",picks:["Spain","Portugal","Mexico","Canada","Scotland"]},
+  {name:"Simone Sichel",picks:["Spain","Norway","Austria","South Korea","Australia"]},
+  {name:"Spyros Halikis",picks:["Germany","Netherlands","Mexico","Egypt","Australia"]},
+  {name:"Troy Tatam",picks:["France","Netherlands","Senegal","Paraguay","Australia"]},
+  {name:"Warwick Saupold",picks:["France","Portugal","Uruguay","Ghana","Australia"]},
+  {name:"Wes Fleiser",picks:["Spain","Portugal","Croatia","Ivory Coast","New Zealand"]},
+  {name:"Zeke Kennedy",picks:["Argentina","Colombia","Ecuador","Canada","Australia"]}
+];
+
+const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L"];
 const pts = t => t.w*3+t.d, gd = t => t.gf-t.ga, played = t => t.w+t.d+t.l;
 const ranked = teams => teams.map((t,i) => ({...t,_i:i})).sort((a,b) => pts(b)-pts(a)||gd(b)-gd(a)||b.gf-a.gf||a.n.localeCompare(b.n));
 
@@ -122,7 +178,7 @@ function renderRivals() {
       const shared = myNorm.filter(p => theirNorm.includes(p));
       const myUnique = myNorm.filter(p => !theirNorm.includes(p));
       const theirUnique = theirNorm.filter(p => !myNorm.includes(p));
-      return {name: e.name, shared, myUnique, theirUnique, count: shared.length};
+      return {name: e.name, shared, myUnique, theirUnique, count: shared.length, theirTb: e.tb || null};
     })
     .filter(r => r.count >= 3)
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
@@ -137,6 +193,11 @@ function renderRivals() {
     const sharedChips = r.shared.map(p => '<span class="rchip shared">' + p + '</span>').join('');
     const myChips = r.myUnique.map(p => '<span class="rchip mine">' + p + '</span>').join('');
     const theirChips = r.theirUnique.map(p => '<span class="rchip theirs">' + p + '</span>').join('');
+    const tbHtml = (r.count === 5 && (me.tb || r.theirTb)) ?
+      '<div class="rival-section"><div class="rival-section-label">Tiebreaker</div><div class="rival-chips">' +
+      (me.tb ? '<span class="rchip mine">You: ' + me.tb + '</span>' : '') +
+      (r.theirTb ? '<span class="rchip theirs">' + r.name.split(' ')[0] + ': ' + r.theirTb + '</span>' : '') +
+      '</div></div>' : '';
     const card = document.createElement('div');
     card.className = 'rival-card';
     card.innerHTML = '<div class="rival-name">' + r.name +
@@ -146,7 +207,8 @@ function renderRivals() {
       (r.myUnique.length ? '<div class="rival-section"><div class="rival-section-label">Only you have</div>' +
       '<div class="rival-chips">' + myChips + '</div></div>' : '') +
       (r.theirUnique.length ? '<div class="rival-section"><div class="rival-section-label">Only ' + r.name.split(' ')[0] + ' has</div>' +
-      '<div class="rival-chips">' + theirChips + '</div></div>' : '');
+      '<div class="rival-chips">' + theirChips + '</div></div>' : '') +
+      tbHtml;
     grid.appendChild(card);
   });
 }

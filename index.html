@@ -455,15 +455,29 @@ function renderBracket() {
     if (pos==='3rd') return {name:'3rd',cls:'tbd'};
     const m=pos.match(/^([12])([A-L])$/);
     if (!m) return {name:pos,cls:'tbd'};
+    const k=parseInt(m[1]);
     const g=DATA.groups[m[2]];
-    // Exact group position (1st vs 2nd) is certain only once the group is
-    // complete - all four teams have played their 3 matches. Until then the
-    // seed stays TBD even for teams that have clinched a top-two place.
-    const complete=g.every(function(t){return (t.w+t.d+t.l)>=3;});
-    if (!complete) return {name:'TBD',cls:'tbd'};
-    const t=ranked(g)[parseInt(m[1])-1];
-    if (!t) return {name:'TBD',cls:'tbd'};
-    return {name:t.n,cls:t.s==='qualified'?'q':t.s==='out'?'x':'p'};
+    const played=t=>t.w+t.d+t.l, pp=t=>t.w*3+t.d;
+    let team=null;
+    if (g.every(t=>played(t)>=3)) {
+      // group finished: final order (goal difference included) is decided
+      team=ranked(g)[k-1];
+    } else {
+      // reveal a seed early only when a team's exact finishing rank is locked
+      // on points alone - every other team is guaranteed above or below it,
+      // so goal difference cannot change the position
+      for (const t of g) {
+        const rem=3-played(t);
+        let above=0, below=0;
+        for (const o of g) { if (o===t) continue;
+          if (pp(o) > pp(t)+3*rem) above++;
+          else if (pp(o)+3*(3-played(o)) < pp(t)) below++;
+        }
+        if (above+below===3 && above===k-1) { team=t; break; }
+      }
+    }
+    if (!team) return {name:'TBD',cls:'tbd'};
+    return {name:team.n,cls:team.s==='qualified'?'q':team.s==='out'?'x':'p'};
   }
 
   let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+W+'px;display:block">'

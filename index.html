@@ -455,9 +455,15 @@ function renderBracket() {
     if (pos==='3rd') return {name:'3rd',cls:'tbd'};
     const m=pos.match(/^([12])([A-L])$/);
     if (!m) return {name:pos,cls:'tbd'};
-    const t=ranked(DATA.groups[m[2]])[parseInt(m[1])-1];
-    if (!t) return {name:pos,cls:'tbd'};
-    return {name:t.n,cls:(t.s==='winner'||t.s==='qualified')?'q':t.s==='out'?'x':'p',label:pos};
+    const g=DATA.groups[m[2]];
+    // Exact group position (1st vs 2nd) is certain only once the group is
+    // complete - all four teams have played their 3 matches. Until then the
+    // seed stays TBD even for teams that have clinched a top-two place.
+    const complete=g.every(function(t){return (t.w+t.d+t.l)>=3;});
+    if (!complete) return {name:'TBD',cls:'tbd'};
+    const t=ranked(g)[parseInt(m[1])-1];
+    if (!t) return {name:'TBD',cls:'tbd'};
+    return {name:t.n,cls:t.s==='qualified'?'q':t.s==='out'?'x':'p'};
   }
 
   let s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:'+W+'px;display:block">'

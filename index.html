@@ -167,6 +167,12 @@
   .sel-row.open .sel-entrants{display:flex}
   .sel-ent{font-size:11.5px;padding:3px 9px;border-radius:5px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
   .sel-row.out .sel-name{color:var(--muted)}
+  .sel-group-label{display:flex;align-items:center;gap:8px;margin:18px 2px 2px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+  .sel-group-label:first-child{margin-top:2px}
+  .sel-group-label.in{color:var(--go)}
+  .sel-group-label.live{color:var(--accent-2)}
+  .sel-group-label.out{color:var(--out)}
+  .sel-group-label .ct{color:var(--faint);font-weight:600;letter-spacing:.04em}
   @media(max-width:600px){.sel-head{grid-template-columns:26px 1fr auto 20px}.sel-status{display:none}}
 </style>
 </head>
@@ -670,23 +676,35 @@ document.querySelectorAll('.tab').forEach(btn => {
 function renderSelections() {
   const map = {};
   ENTRIES.forEach(e => e.picks.forEach(p => { const n = ALIAS[p] || p; (map[n] = map[n] || []).push(e.name); }));
-  const srank = s => (s === 'qualified' || s === 'winner') ? 0 : (s === 'out' ? 2 : 1);
+  const grp = s => (s === 'qualified' || s === 'winner') ? 0 : (s === 'out' ? 2 : 1);
+  const meta = g => g === 0 ? ['in', 'In'] : g === 1 ? ['live', 'Live'] : ['out', 'Out'];
   const rows = Object.keys(map).map(n => ({ name: n, entrants: map[n].slice().sort((a, b) => a.localeCompare(b)), count: map[n].length, status: teamStatus(n) }));
   const maxC = Math.max(1, ...rows.map(r => r.count));
-  rows.sort((a, b) => b.count - a.count || srank(a.status) - srank(b.status) || a.name.localeCompare(b.name));
-  const lbl = s => (s === 'qualified' || s === 'winner') ? ['in', 'In'] : (s === 'out' ? ['out', 'Out'] : ['live', 'Live']);
+  rows.sort((a, b) => grp(a.status) - grp(b.status) || b.count - a.count || a.name.localeCompare(b.name));
   const host = document.getElementById('selList');
   host.innerHTML = '';
-  rows.forEach((r, i) => {
-    const meta = lbl(r.status);
+  let lastG = null, n = 0;
+  rows.forEach(r => {
+    const g = grp(r.status);
+    if (g !== lastG) {
+      lastG = g; n = 0;
+      const m = meta(g);
+      const cnt = rows.filter(x => grp(x.status) === g).length;
+      const lab = document.createElement('div');
+      lab.className = 'sel-group-label ' + m[0];
+      lab.innerHTML = m[1] + ' <span class="ct">' + cnt + ' team' + (cnt === 1 ? '' : 's') + '</span>';
+      host.appendChild(lab);
+    }
+    n++;
+    const m = meta(g);
     const row = document.createElement('div');
-    row.className = 'sel-row' + (r.status === 'out' ? ' out' : '');
-    const ents = r.entrants.map(n => '<span class="sel-ent">' + n + '</span>').join('');
+    row.className = 'sel-row' + (g === 2 ? ' out' : '');
+    const ents = r.entrants.map(x => '<span class="sel-ent">' + x + '</span>').join('');
     row.innerHTML =
       '<div class="sel-head">' +
-        '<span class="sel-rank">' + (i + 1) + '</span>' +
+        '<span class="sel-rank">' + n + '</span>' +
         '<span class="sel-name">' + r.name + '</span>' +
-        '<span class="sel-status ' + meta[0] + '">' + meta[1] + '</span>' +
+        '<span class="sel-status ' + m[0] + '">' + m[1] + '</span>' +
         '<span class="sel-count">' + r.count + ' <small>pick' + (r.count === 1 ? '' : 's') + '</small></span>' +
         '<span class="sel-caret">&#9656;</span>' +
       '</div>' +

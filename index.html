@@ -173,6 +173,9 @@
   .sel-group-label.live{color:var(--accent-2)}
   .sel-group-label.out{color:var(--out)}
   .sel-group-label .ct{color:var(--faint);font-weight:600;letter-spacing:.04em}
+  .sel-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+  .sel-expand{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 14px;color:var(--text);font-family:var(--sans);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .12s;white-space:nowrap}
+  .sel-expand:hover{background:var(--surface-2);border-color:#384258}
   @media(max-width:600px){.sel-head{grid-template-columns:26px 1fr auto 20px}.sel-status{display:none}}
 </style>
 </head>
@@ -276,7 +279,7 @@
   </div>
 
   <div id="tab-selections" class="tab-panel">
-    <p class="rivals-hint" id="selHint">How many entrants picked each team. Click a row to see who. Sorted by popularity (most picked first), with qualified teams ahead of eliminated ones.</p>
+    <div class="sel-toolbar"><p class="rivals-hint" id="selHint" style="margin:0;flex:1;min-width:220px">How many entrants picked each team, grouped In / Live / Out and ranked by popularity within each group. Click a row to see who.</p><button class="sel-expand" id="selExpand">Expand all</button></div>
     <div class="sel-list" id="selList"></div>
   </div>
 
@@ -719,6 +722,13 @@ renderLadder();
 renderR32();
 renderBracket();
 renderSelections();
+
+document.getElementById('selExpand').addEventListener('click', function () {
+  const rows = [...document.querySelectorAll('#selList .sel-row')];
+  const anyClosed = rows.some(r => !r.classList.contains('open'));
+  rows.forEach(r => r.classList.toggle('open', anyClosed));
+  this.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+});
 
 </script>
 </body>

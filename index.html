@@ -281,7 +281,7 @@
   </div>
 
   <div id="tab-draw" class="tab-panel">
-    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px">R32 bracket. Group winners and runners-up fill the numbered seeds once their position is locked. The best-8 third-placed teams that have qualified are listed below; they drop into the bracket's "3rd" slots once all groups finish and FIFA's third-place allocation is set.</p>
+    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px">Official FIFA Round-of-32 draw. Each slot shows its seed (1G, 2A, 3rd) and the team once decided; the two open slots wait on Group J. Qualified third-placed teams are also listed below.</p>
     <div id="thirdPool" class="third-pool"></div>
     <div style="overflow-x:auto;padding-bottom:10px">
       <div id="bracketSvg"></div>
@@ -318,7 +318,8 @@ const DATA = {
     J:[{n:"Argentina",w:2,d:0,l:0,gf:5,ga:0,s:"qualified"},{n:"Austria",w:1,d:0,l:1,gf:3,ga:3,s:""},{n:"Algeria",w:1,d:0,l:1,gf:2,ga:4,s:""},{n:"Jordan",w:0,d:0,l:2,gf:2,ga:5,s:""}],
     K:[{n:"Colombia",w:2,d:1,l:0,gf:4,ga:1,s:"qualified"},{n:"Portugal",w:1,d:2,l:0,gf:6,ga:1,s:"qualified"},{n:"DR Congo",w:1,d:1,l:1,gf:4,ga:3,s:"qualified"},{n:"Uzbekistan",w:0,d:0,l:3,gf:2,ga:11,s:"out"}],
     L:[{n:"England",w:2,d:1,l:0,gf:6,ga:2,s:"qualified"},{n:"Croatia",w:2,d:0,l:1,gf:5,ga:5,s:"qualified"},{n:"Ghana",w:1,d:1,l:1,gf:2,ga:2,s:"qualified"},{n:"Panama",w:0,d:0,l:3,gf:0,ga:4,s:"out"}]
-  }
+  },
+  r32: {M73:["South Africa","Canada"],M74:["Germany","Paraguay"],M75:["Netherlands","Morocco"],M76:["Brazil","Japan"],M77:["France","Sweden"],M78:["Ivory Coast","Norway"],M79:["Mexico","Ecuador"],M80:["England","DR Congo"],M81:["USA","Bosnia & H."],M82:["Belgium","Senegal"],M83:["Portugal","Croatia"],M84:["Spain",null],M85:["Switzerland",null],M86:["Argentina","Cabo Verde"],M87:["Colombia","Ghana"],M88:["Australia","Egypt"]}
 };
 /* DATA_END */
 
@@ -550,13 +551,21 @@ function renderBracket() {
   s+='<text class="brt" x="'+(FX+SW/2)+'" y="14" style="fill:#9a6fd8">FINAL</text>';
   s+='<text style="font-size:20px;text-anchor:middle" x="'+(FX+SW/2)+'" y="'+(SFY[0]-SH-GP/2-10)+'">&#127942;</text>';
 
+  // Render each R32 slot from FIFA's official published draw (DATA.r32 by match
+  // number). Falls back to the seed label (1G, 2A, 3rd) when the slot is open.
+  function bktTeam(name, label) {
+    if (!name) return { name: (/^[12][A-L]$/.test(label) ? label : '3rd'), cls: 'tbd' };
+    const st = teamStatus(name);
+    return { name: name, cls: (st === 'qualified' || st === 'winner') ? 'q' : st === 'out' ? 'x' : 'p' };
+  }
   function drawMatch(m,x,cy) {
-    const ta=res(m.a),tb=res(m.b);
+    const fx = (DATA.r32 && DATA.r32[m.n]) || [null, null];
+    const ta=bktTeam(fx[0],m.a),tb=bktTeam(fx[1],m.b);
     const y1=cy-SH-GP/2,y2=cy+GP/2;
     [['bsl '+ta.cls,'btx '+ta.cls,y1,ta,m.a],[' bsl '+tb.cls,'btx '+tb.cls,y2,tb,m.b]].forEach(([rc,tc,y,t,pos])=>{
       s+='<rect class="'+rc.trim()+'" x="'+x+'" y="'+y+'" width="'+SW+'" height="'+SH+'" rx="3"/>';
       s+='<text class="'+tc+'" x="'+(x+5)+'" y="'+(y+SH/2+0.5)+'">'+t.name+'</text>';
-      if(pos!=='3rd') s+='<text class="blb" x="'+(x+SW-3)+'" y="'+(y+SH/2+0.5)+'" text-anchor="end">'+pos+'</text>';
+      s+='<text class="blb" x="'+(x+SW-3)+'" y="'+(y+SH/2+0.5)+'" text-anchor="end">'+pos+'</text>';
     });
   }
 

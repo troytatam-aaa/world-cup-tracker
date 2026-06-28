@@ -144,6 +144,15 @@
   }
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+  /* THIRD-PLACE POOL (Draw tab) */
+  .third-pool{background:linear-gradient(180deg,var(--surface),var(--ink-2));border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+  .third-pool h3{margin:0 0 4px;font-size:14px;font-weight:800}
+  .third-pool .tp-sub{color:var(--muted);font-size:12px;margin:0 0 10px;line-height:1.5}
+  .third-pool .tp-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .tp-chip{font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.35)}
+  .tp-chip .gp{color:var(--faint);font-family:var(--mono);font-size:10px;margin-left:6px;font-weight:600}
+  .tp-chip.pending{background:var(--surface-2);color:var(--muted);border:1px solid var(--line);font-weight:600}
+
   /* SELECTIONS */
   .sel-list{display:flex;flex-direction:column;gap:8px}
   .sel-row{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -272,7 +281,8 @@
   </div>
 
   <div id="tab-draw" class="tab-panel">
-    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px">R32 bracket structure - progression TBD after group stage. 3rd-place slots depend on final group standings.</p>
+    <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px">R32 bracket. Group winners and runners-up fill the numbered seeds once their position is locked. The best-8 third-placed teams that have qualified are listed below; they drop into the bracket's "3rd" slots once all groups finish and FIFA's third-place allocation is set.</p>
+    <div id="thirdPool" class="third-pool"></div>
     <div style="overflow-x:auto;padding-bottom:10px">
       <div id="bracketSvg"></div>
     </div>
@@ -718,9 +728,24 @@ function renderSelections() {
   });
 }
 
+function renderThirdPool() {
+  const host = document.getElementById('thirdPool');
+  if (!host) return;
+  const thirds = [];
+  GROUPS.forEach(g => { const t = ranked(DATA.groups[g])[2]; if (t && t.s === 'qualified') thirds.push({ n: t.n, g, pts: t.w * 3 + t.d, gd: t.gf - t.ga, gf: t.gf }); });
+  thirds.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.n.localeCompare(b.n));
+  const chips = thirds.map(t => '<span class="tp-chip">' + t.n + '<span class="gp">' + t.g + '</span></span>').join('');
+  const pend = 8 - thirds.length;
+  const pendChip = pend > 0 ? '<span class="tp-chip pending">' + pend + ' spot' + (pend === 1 ? '' : 's') + ' still to be decided</span>' : '';
+  host.innerHTML = '<h3>Best third-place qualifiers &mdash; ' + thirds.length + ' of 8 secured</h3>' +
+    '<p class="tp-sub">These third-placed teams have mathematically secured a Round-of-32 place. Their exact bracket slot is assigned once all groups finish and the eight best thirds are confirmed.</p>' +
+    '<div class="tp-chips">' + chips + pendChip + '</div>';
+}
+
 renderLadder();
 renderR32();
 renderBracket();
+renderThirdPool();
 renderSelections();
 
 document.getElementById('selExpand').addEventListener('click', function () {

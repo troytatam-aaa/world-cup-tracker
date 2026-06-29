@@ -80,6 +80,9 @@
   .pick-chip.st-qf{background:var(--bubble-bg);color:var(--bubble);border:1px solid rgba(246,184,60,.5)}
   .pick-chip.st-sf{background:rgba(255,107,107,.16);color:#ff8e8e;border:1px solid rgba(255,107,107,.5)}
   .pick-chip.st-fin{background:rgba(255,210,74,.18);color:#ffd24a;border:1px solid rgba(255,210,74,.55)}
+  .lpicks .lcl{display:inline-flex;align-items:center;flex-wrap:wrap;gap:3px}
+  .lpicks .lcl + .lcl{border-left:1px solid var(--line);padding-left:7px;margin-left:5px}
+  .clab{font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-right:3px;white-space:nowrap}
   .top1 td.lpts-col{color:#F6B83C!important}.top1{background:rgba(246,184,60,.04)!important}
   .top2 td.lpts-col{color:#A0AEC0!important}.top2{background:rgba(160,174,192,.04)!important}
   .top3 td.lpts-col{color:#C07850!important}.top3{background:rgba(192,120,80,.04)!important}
@@ -596,21 +599,17 @@ function renderBracket() {
   s+='<text class="brt" x="'+(FX+SW/2)+'" y="14" style="fill:#9a6fd8">FINAL</text>';
   s+='<text style="font-size:20px;text-anchor:middle" x="'+(FX+SW/2)+'" y="'+(SFY[0]-SH-GP/2-10)+'">&#127942;</text>';
 
-  // Render each R32 slot from FIFA's official published draw (DATA.r32 by match
-  // number). Falls back to the seed label (1G, 2A, 3rd) when the slot is open.
-  function bktTeam(name, label) {
-    if (!name) return { name: (/^[12][A-L]$/.test(label) ? label : '3rd'), cls: 'tbd' };
-    const st = teamStatus(name);
-    return { name: name, cls: (st === 'qualified' || st === 'winner') ? 'q' : st === 'out' ? 'x' : 'p' };
-  }
-  function drawMatch(m,x,cy) {
-    const fx = (DATA.r32 && DATA.r32[m.n]) || [null, null];
-    const ta=bktTeam(fx[0],m.a),tb=bktTeam(fx[1],m.b);
-    const y1=cy-SH-GP/2,y2=cy+GP/2;
-    [['bsl '+ta.cls,'btx '+ta.cls,y1,ta,m.a],[' bsl '+tb.cls,'btx '+tb.cls,y2,tb,m.b]].forEach(([rc,tc,y,t,pos])=>{
-      s+='<rect class="'+rc.trim()+'" x="'+x+'" y="'+y+'" width="'+SW+'" height="'+SH+'" rx="3"/>';
-      s+='<text class="'+tc+'" x="'+(x+5)+'" y="'+(y+SH/2+0.5)+'">'+t.name+'</text>';
-      s+='<text class="blb" x="'+(x+SW-3)+'" y="'+(y+SH/2+0.5)+'" text-anchor="end">'+pos+'</text>';
+  function drawKO(m,x,cy) {
+    const e = (DATA.ko && DATA.ko[m.n]) || [null,null,null];
+    const w = e[2];
+    [[e[0], m.a, cy-SH-GP/2],[e[1], m.b, cy+GP/2]].forEach(([team,label,y])=>{
+      let cls, name;
+      if (!team) { cls='tbd'; name = (label && /^[12][A-L]$|^3rd$/.test(label)) ? label : 'TBD'; }
+      else if (!w) { cls=''; name = team; }
+      else { cls = team===w ? 'q' : 'x'; name = team; }
+      s+='<rect class="bsl '+cls+'" x="'+x+'" y="'+y+'" width="'+SW+'" height="'+SH+'" rx="3"/>';
+      s+='<text class="btx '+cls+'" x="'+(x+5)+'" y="'+(y+SH/2+0.5)+'">'+name+'</text>';
+      if (label && /^[12][A-L]$|^3rd$/.test(label)) s+='<text class="blb" x="'+(x+SW-3)+'" y="'+(y+SH/2+0.5)+'" text-anchor="end">'+label+'</text>';
     });
   }
 
@@ -644,25 +643,25 @@ function renderBracket() {
     }
   }
 
-  L32.forEach((m,i)=>drawMatch(m,LX[0],R32Y[i]));
-  R16Y.forEach(cy=>drawTBD(LX[1],cy));
-  QFY.forEach(cy=>drawTBD(LX[2],cy));
-  SFY.forEach(cy=>drawTBD(LX[3],cy));
+  L32.forEach((m,i)=>drawKO(m,LX[0],R32Y[i]));
+  [89,90,93,94].forEach((n,i)=>drawKO({n:'M'+n},LX[1],R16Y[i]));
+  [97,98].forEach((n,i)=>drawKO({n:'M'+n},LX[2],QFY[i]));
+  drawKO({n:'M101'},LX[3],SFY[0]);
   connL(R32Y,R16Y,LX[0]+SW,LX[1]);
   connL(R16Y,QFY,LX[1]+SW,LX[2]);
   connL(QFY,SFY,LX[2]+SW,LX[3]);
   s+='<line class="bl" x1="'+(LX[3]+SW)+'" y1="'+SFY[0]+'" x2="'+FX+'" y2="'+SFY[0]+'"/>';
 
-  R32.forEach((m,i)=>drawMatch(m,RX[0],R32Y[i]));
-  R16Y.forEach(cy=>drawTBD(RX[1],cy));
-  QFY.forEach(cy=>drawTBD(RX[2],cy));
-  SFY.forEach(cy=>drawTBD(RX[3],cy));
+  R32.forEach((m,i)=>drawKO(m,RX[0],R32Y[i]));
+  [91,92,95,96].forEach((n,i)=>drawKO({n:'M'+n},RX[1],R16Y[i]));
+  [99,100].forEach((n,i)=>drawKO({n:'M'+n},RX[2],QFY[i]));
+  drawKO({n:'M102'},RX[3],SFY[0]);
   connR(R32Y,R16Y,RX[0],RX[1]+SW);
   connR(R16Y,QFY,RX[1],RX[2]+SW);
   connR(QFY,SFY,RX[2],RX[3]+SW);
   s+='<line class="bl" x1="'+RX[3]+'" y1="'+SFY[0]+'" x2="'+(FX+SW)+'" y2="'+SFY[0]+'"/>';
 
-  drawTBD(FX,SFY[0],'fin');
+  drawKO({n:'M104'},FX,SFY[0]);
   s+='</svg>';
   document.getElementById('bracketSvg').innerHTML=s;
 }
@@ -745,7 +744,7 @@ function renderSelections() {
   ENTRIES.forEach(e => e.picks.forEach(p => { const n = ALIAS[p] || p; (map[n] = map[n] || []).push(e.name); }));
   const grp = s => (s === 'qualified' || s === 'winner') ? 0 : (s === 'out' ? 2 : 1);
   const meta = g => g === 0 ? ['in', 'In'] : g === 1 ? ['live', 'Live'] : ['out', 'Out'];
-  const rows = Object.keys(map).map(n => ({ name: n, entrants: map[n].slice().sort((a, b) => a.localeCompare(b)), count: map[n].length, status: teamStatus(n) }));
+  const rows = Object.keys(map).map(n => ({ name: n, entrants: map[n].slice().sort((a, b) => a.localeCompare(b)), count: map[n].length, status: selStatus(n) }));
   const maxC = Math.max(1, ...rows.map(r => r.count));
   rows.sort((a, b) => grp(a.status) - grp(b.status) || b.count - a.count || a.name.localeCompare(b.name));
   const host = document.getElementById('selList');

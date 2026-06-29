@@ -335,8 +335,7 @@ const DATA = {
     K:[{n:"Colombia",w:2,d:1,l:0,gf:4,ga:1,s:"qualified"},{n:"Portugal",w:1,d:2,l:0,gf:6,ga:1,s:"qualified"},{n:"DR Congo",w:1,d:1,l:1,gf:4,ga:3,s:"qualified"},{n:"Uzbekistan",w:0,d:0,l:3,gf:2,ga:11,s:"out"}],
     L:[{n:"England",w:2,d:1,l:0,gf:6,ga:2,s:"qualified"},{n:"Croatia",w:2,d:0,l:1,gf:5,ga:5,s:"qualified"},{n:"Ghana",w:1,d:1,l:1,gf:2,ga:2,s:"qualified"},{n:"Panama",w:0,d:0,l:3,gf:0,ga:4,s:"out"}]
   },
-  r32: {M73:["South Africa","Canada"],M74:["Germany","Paraguay"],M75:["Netherlands","Morocco"],M76:["Brazil","Japan"],M77:["France","Sweden"],M78:["Ivory Coast","Norway"],M79:["Mexico","Ecuador"],M80:["England","DR Congo"],M81:["USA","Bosnia & H."],M82:["Belgium","Senegal"],M83:["Portugal","Croatia"],M84:["Spain","Austria"],M85:["Switzerland","Algeria"],M86:["Argentina","Cabo Verde"],M87:["Colombia","Ghana"],M88:["Australia","Egypt"]},
-  ko: {"Canada":1}
+  ko: {M73:["South Africa","Canada","Canada"],M74:["Germany","Paraguay",null],M75:["Netherlands","Morocco",null],M76:["Brazil","Japan",null],M77:["France","Sweden",null],M78:["Ivory Coast","Norway",null],M79:["Mexico","Ecuador",null],M80:["England","DR Congo",null],M81:["USA","Bosnia & H.",null],M82:["Belgium","Senegal",null],M83:["Portugal","Croatia",null],M84:["Spain","Austria",null],M85:["Switzerland","Algeria",null],M86:["Argentina","Cabo Verde",null],M87:["Colombia","Ghana",null],M88:["Australia","Egypt",null],M89:[null,null,null],M90:["Canada",null,null],M91:[null,null,null],M92:[null,null,null],M93:[null,null,null],M94:[null,null,null],M95:[null,null,null],M96:[null,null,null],M97:[null,null,null],M98:[null,null,null],M99:[null,null,null],M100:[null,null,null],M101:[null,null,null],M102:[null,null,null],M103:[null,null,null],M104:[null,null,null]}
 };
 /* DATA_END */
 
@@ -415,22 +414,38 @@ function pickCls(name) {
 
 function koWins(name) {
   const n = ALIAS[name] || name;
-  return (DATA.ko && DATA.ko[n]) || 0;
+  if (!DATA.ko) return 0;
+  let c = 0;
+  for (let m = 73; m <= 102; m++) { const e = DATA.ko['M'+m]; if (e && e[2] === n) c++; }
+  const f = DATA.ko['M104']; if (f && f[2] === n) c++;
+  return c;
 }
-function stageClass(name) {
+function koLost(name) {
+  const n = ALIAS[name] || name;
+  if (!DATA.ko) return false;
+  for (let m = 73; m <= 102; m++) { const e = DATA.ko['M'+m]; if (e && e[2] && (e[0]===n || e[1]===n) && e[2]!==n) return true; }
+  const f = DATA.ko['M104']; if (f && f[2] && (f[0]===n || f[1]===n) && f[2]!==n) return true;
+  return false;
+}
+function reachedOf(name) {
   const st = teamStatus(name);
-  if (st === 'out') return 'st-out';
-  if (st !== 'qualified' && st !== 'winner') return 'st-grp';
-  return ['st-grp','st-r32','st-r16','st-qf','st-sf','st-fin'][Math.min(koWins(name),5)];
+  if (st !== 'qualified' && st !== 'winner') return 0;
+  return 1 + koWins(name);
 }
+function selStatus(name) {
+  const st = teamStatus(name);
+  if (st === 'out' || koLost(name)) return 'out';
+  if (st === 'qualified' || st === 'winner') return 'qualified';
+  return '';
+}
+const ST_CLASS = ['st-grp','st-r32','st-r16','st-qf','st-sf','st-fin'];
+const ST_LABEL = ['Group','R32','R16','QF','SF','Champ'];
+const ST_COL = ['#aab6cc','#5bb0ff','#2bd576','#f6b83c','#ff8e8e','#ffd24a'];
 function renderLadder() {
   const scored = ENTRIES.map(e => {
-    let pts = 0;
-    e.picks.forEach(p => {
-      const st = teamStatus(p);
-      if (st === 'qualified' || st === 'winner') pts += 2 * (1 + koWins(p));
-    });
-    return {name:e.name, picks:e.picks, pts};
+    const items = e.picks.map(p => ({ n: ALIAS[p]||p, r: reachedOf(p) }));
+    const pts = 2 * items.reduce((s,x) => s + x.r, 0);
+    return { name:e.name, items, pts };
   }).sort((a,b) => b.pts - a.pts || a.name.localeCompare(b.name));
 
   const tbody = document.getElementById('ladderBody');
@@ -440,11 +455,11 @@ function renderLadder() {
     if (i > 0 && e.pts < scored[i-1].pts) rank = i + 1;
     const rkCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
     const rowCls = rank===1?' top1':rank===2?' top2':rank===3?' top3':'';
-    const chips = e.picks.map(p => '<span class="pick-chip ' + stageClass(p) + '">' + (ALIAS[p]||p) + '</span>').join('');
+    let funnel = '<span class="lcl"><span class="clab" style="color:' + ST_COL[0] + '">Group</span>' + e.items.map(x => x.r===0 ? '<span class="pick-chip st-out">' + x.n + '</span>' : '<span class="pick-chip st-grp">' + x.n + '</span>').join('') + '</span>'; for (let l = 2; l <= 6; l++) { const here = e.items.filter(x => x.r >= l); if (!here.length) continue; funnel += '<span class="lcl"><span class="clab" style="color:' + ST_COL[l-1] + '">' + ST_LABEL[l-1] + '</span>' + here.map(x => '<span class="pick-chip ' + ST_CLASS[l-1] + '">' + x.n + '</span>').join('') + '</span>'; }
     const tr = document.createElement('tr');
     tr.className = rowCls;
     tr.innerHTML = '<td class="lrank-col"><span class="rk-badge ' + rkCls + '">' + rank + '</span></td>' +
-      '<td class="lname-col"><div>' + e.name + '</div><div class="lpicks">' + chips + '</div></td>' +
+      '<td class="lname-col"><div>' + e.name + '</div><div class="lpicks">' + funnel + '</div></td>' +
       '<td class="lpts-col">' + e.pts + '</td>';
     tbody.appendChild(tr);
   });

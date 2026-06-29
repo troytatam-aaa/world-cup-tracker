@@ -73,6 +73,13 @@
   .pick-chip.q{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.3)}
   .pick-chip.x{background:var(--out-bg);color:var(--out);border:1px solid rgba(255,90,110,.3);text-decoration:line-through;opacity:.65}
   .pick-chip.p{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .pick-chip.st-out{background:var(--out-bg);color:var(--out);border:1px solid rgba(255,90,110,.3);text-decoration:line-through;opacity:.6}
+  .pick-chip.st-grp{background:rgba(124,138,160,.16);color:#aab6cc;border:1px solid rgba(124,138,160,.42)}
+  .pick-chip.st-r32{background:rgba(63,160,255,.15);color:#5bb0ff;border:1px solid rgba(63,160,255,.45)}
+  .pick-chip.st-r16{background:var(--go-bg);color:var(--go);border:1px solid rgba(43,213,118,.45)}
+  .pick-chip.st-qf{background:var(--bubble-bg);color:var(--bubble);border:1px solid rgba(246,184,60,.5)}
+  .pick-chip.st-sf{background:rgba(255,107,107,.16);color:#ff8e8e;border:1px solid rgba(255,107,107,.5)}
+  .pick-chip.st-fin{background:rgba(255,210,74,.18);color:#ffd24a;border:1px solid rgba(255,210,74,.55)}
   .top1 td.lpts-col{color:#F6B83C!important}.top1{background:rgba(246,184,60,.04)!important}
   .top2 td.lpts-col{color:#A0AEC0!important}.top2{background:rgba(160,174,192,.04)!important}
   .top3 td.lpts-col{color:#C07850!important}.top3{background:rgba(192,120,80,.04)!important}
@@ -231,9 +238,14 @@
       <span class="sk"><b>+2</b> win Final</span>
     </div>
     <div class="ldr-legend">
-      <span><span class="lpick q">Qualified</span> advanced from groups - 2 pts</span>
-      <span><span class="lpick x">Out</span> eliminated - 0 pts</span>
-      <span><span class="lpick p">Playing</span> still in group stage</span>
+      <span style="color:var(--muted);font-size:11px">Pick colour = furthest stage reached:</span>
+      <span class="pick-chip st-grp">Group</span>
+      <span class="pick-chip st-r32">R32</span>
+      <span class="pick-chip st-r16">R16</span>
+      <span class="pick-chip st-qf">QF</span>
+      <span class="pick-chip st-sf">SF</span>
+      <span class="pick-chip st-fin">Champion</span>
+      <span class="pick-chip st-out">Out</span>
     </div>
     <div class="tbl-wrap">
       <table class="ltable">
@@ -241,12 +253,6 @@
           <tr>
             <th class="lrank-col">#</th>
             <th>Entrant &amp; Picks</th>
-            <th class="sc" title="Teams that qualified from their group">Grp</th>
-            <th class="sc" title="Teams that won their Round of 32 tie">R32</th>
-            <th class="sc" title="Teams that won their Round of 16 tie">R16</th>
-            <th class="sc" title="Teams that won their quarter-final">QF</th>
-            <th class="sc" title="Teams that won their semi-final">SF</th>
-            <th class="sc" title="Teams that won the final">F</th>
             <th class="tr">Pts</th>
           </tr>
         </thead>
@@ -411,33 +417,34 @@ function koWins(name) {
   const n = ALIAS[name] || name;
   return (DATA.ko && DATA.ko[n]) || 0;
 }
+function stageClass(name) {
+  const st = teamStatus(name);
+  if (st === 'out') return 'st-out';
+  if (st !== 'qualified' && st !== 'winner') return 'st-grp';
+  return ['st-grp','st-r32','st-r16','st-qf','st-sf','st-fin'][Math.min(koWins(name),5)];
+}
 function renderLadder() {
   const scored = ENTRIES.map(e => {
-    let grp=0,r32=0,r16=0,qf=0,sf=0,fin=0;
+    let pts = 0;
     e.picks.forEach(p => {
       const st = teamStatus(p);
-      if (st === 'qualified' || st === 'winner') grp++;
-      const k = koWins(p);
-      if (k>=1) r32++; if (k>=2) r16++; if (k>=3) qf++; if (k>=4) sf++; if (k>=5) fin++;
+      if (st === 'qualified' || st === 'winner') pts += 2 * (1 + koWins(p));
     });
-    const pts = 2*(grp+r32+r16+qf+sf+fin);
-    return {name:e.name, picks:e.picks, grp, r32, r16, qf, sf, fin, pts};
+    return {name:e.name, picks:e.picks, pts};
   }).sort((a,b) => b.pts - a.pts || a.name.localeCompare(b.name));
 
   const tbody = document.getElementById('ladderBody');
   tbody.innerHTML = '';
-  const cell = v => '<td class="sc">' + (v>0 ? v : '<span class="z">&middot;</span>') + '</td>';
   let rank = 1;
   scored.forEach((e, i) => {
     if (i > 0 && e.pts < scored[i-1].pts) rank = i + 1;
     const rkCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
     const rowCls = rank===1?' top1':rank===2?' top2':rank===3?' top3':'';
-    const chips = e.picks.map(p => '<span class="pick-chip ' + pickCls(p) + '">' + (ALIAS[p]||p) + '</span>').join('');
+    const chips = e.picks.map(p => '<span class="pick-chip ' + stageClass(p) + '">' + (ALIAS[p]||p) + '</span>').join('');
     const tr = document.createElement('tr');
     tr.className = rowCls;
     tr.innerHTML = '<td class="lrank-col"><span class="rk-badge ' + rkCls + '">' + rank + '</span></td>' +
       '<td class="lname-col"><div>' + e.name + '</div><div class="lpicks">' + chips + '</div></td>' +
-      cell(e.grp)+cell(e.r32)+cell(e.r16)+cell(e.qf)+cell(e.sf)+cell(e.fin) +
       '<td class="lpts-col">' + e.pts + '</td>';
     tbody.appendChild(tr);
   });

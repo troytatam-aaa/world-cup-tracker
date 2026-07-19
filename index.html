@@ -250,6 +250,7 @@
       <span class="pick-chip st-fin">Champion</span>
       <span class="pick-chip st-out">Out</span>
     </div>
+    <p style="color:var(--muted);font-size:11.5px;margin:-8px 0 16px;line-height:1.5">No draws for 1st, 2nd or 3rd: ties on points are split by countback &mdash; most picks that are Champions, then Finalists, then Semi-finalists, then Quarter-finalists, then Round-of-16, then Round-of-32 exits.</p>
     <div class="tbl-wrap">
       <table class="ltable">
         <thead>
@@ -444,18 +445,32 @@ function selStatus(name) {
 const ST_CLASS = ['st-grp','st-r32','st-r16','st-qf','st-sf','st-fin'];
 const ST_LABEL = ['Group','R32','R16','QF','SF','Champ'];
 const ST_COL = ['#aab6cc','#5bb0ff','#2bd576','#f6b83c','#ff8e8e','#ffd24a'];
+function countback(items) {
+  // index 0 = most Champions(r=6) ... index 5 = most R32-exits(r=1); higher is better at every index
+  const c = [0,0,0,0,0,0];
+  items.forEach(x => { if (x.r >= 1 && x.r <= 6) c[6 - x.r]++; });
+  return c;
+}
+function cmpCountback(a, b) {
+  for (let i = 0; i < a.length; i++) { if (b[i] !== a[i]) return b[i] - a[i]; }
+  return 0;
+}
 function renderLadder() {
   const scored = ENTRIES.map(e => {
     const items = e.picks.map(p => ({ n: ALIAS[p]||p, r: reachedOf(p) }));
     const pts = 2 * items.reduce((s,x) => s + x.r, 0);
-    return { name:e.name, items, pts };
-  }).sort((a,b) => b.pts - a.pts || a.name.localeCompare(b.name));
+    return { name:e.name, items, pts, cb: countback(items) };
+  }).sort((a,b) => b.pts - a.pts || cmpCountback(a.cb, b.cb) || a.name.localeCompare(b.name));
 
   const tbody = document.getElementById('ladderBody');
   tbody.innerHTML = '';
   let rank = 1;
   scored.forEach((e, i) => {
-    if (i > 0 && e.pts < scored[i-1].pts) rank = i + 1;
+    if (i > 0) {
+      const p = scored[i-1];
+      const fullyTied = e.pts === p.pts && cmpCountback(e.cb, p.cb) === 0;
+      if (!fullyTied) rank = i + 1;
+    }
     const rkCls = rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
     const rowCls = rank===1?' top1':rank===2?' top2':rank===3?' top3':'';
     let funnel = '<span class="lcl">' + e.items.map(x => x.r===0 ? '<span class="pick-chip st-out">' + x.n + '</span>' : '<span class="pick-chip st-grp">' + x.n + '</span>').join('') + '</span>'; for (let l = 2; l <= 6; l++) { const here = e.items.filter(x => x.r >= l); if (!here.length) continue; funnel += '<span class="lcl">' + here.map(x => '<span class="pick-chip ' + ST_CLASS[l-1] + '">' + x.n + '</span>').join('') + '</span>'; }
